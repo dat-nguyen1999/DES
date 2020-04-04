@@ -228,11 +228,11 @@ key = """ 00010011 00110100 01010111 01111001 10011011 10111100 11011111
 # for c in mes:
 #     if c is not " ":
 #         _mes.append(c)
-_mes = reduce(lambda x,y: x + [y] if y == "0" or y == "1" else x,list(mes),[])
-_key = reduce(lambda x,y: x + [y] if y == "0" or y == "1" else x,list(key),[])
+#_mes = reduce(lambda x,y: x + [y] if y == "0" or y == "1" else x,list(mes),[])
+#_key = reduce(lambda x,y: x + [y] if y == "0" or y == "1" else x,list(key),[])
 
-ciphertext =  encrypt_DES(_mes,_key)
-_print(ciphertext)
+#ciphertext =  encrypt_DES(_mes,_key)
+#_print(ciphertext)
 
 
 #pc_1 = PC_1(_key)
@@ -277,3 +277,103 @@ _print(ciphertext)
 #_print(R_1)
 #ciper = re_IP(R_1 + ip[32:])
 #_print(ciper)
+
+
+def P10(K):
+    p10_t = [3, 5, 2, 7, 4, 10, 1, 9, 8, 6]
+    return reduce(lambda x,y:x + [K[y-1]], p10_t,[])
+def shift_5bit(Half_K):
+    l = [*Half_K]
+    l.append(l.pop(0))
+    return l
+def shift_KP10(KP10):
+    return shift_5bit(KP10[:5]) + shift_5bit(KP10[5:])
+def P8(K_shifted):
+    p8_t = [6, 3, 7, 4, 8, 5, 10, 9]
+    return reduce(lambda x,y:x + [K_shifted[y-1]], p8_t,[])
+def S_IP(M):
+    ip_tb = [2, 6, 3, 1, 4, 8, 5, 7]
+    return reduce(lambda x,y:x + [M[y-1]], ip_tb,[])
+def S_re_IP(M):
+    re_ip_tb = [4, 1, 3, 5, 7, 2, 8, 6]
+    return reduce(lambda x,y:x + [M[y-1]], re_ip_tb,[])
+def S_Expend(R):
+    e_tb = [4, 1, 2, 3, 2, 3, 4, 1]
+    return reduce(lambda x,y:x + [R[y-1]], e_tb,[])
+def S_S0(four_bit):
+    s0_tb = [
+        [1, 0, 3, 2],
+        [3, 2, 1, 0],
+        [0, 2, 1, 3],
+        [3, 1, 3, 2],
+    ]
+    row = int(four_bit[0]) * 2 + int(four_bit[3])
+    col = int(four_bit[1]) * 2 + int(four_bit[2])
+    return list(format(s0_tb[row][col],'02b'))       
+
+def S_S1(four_bit):
+    s1_tb = [
+        [0, 1, 2, 3],
+        [2, 0, 1, 3],
+        [3, 0, 1, 0],
+        [2, 1, 0, 3],
+    ]
+    row = int(four_bit[0]) * 2  + int(four_bit[3])
+    col = int(four_bit[1]) * 2  + int(four_bit[2])
+    return list(format(s1_tb[row][col],'02b'))    
+
+def P4(l):
+    p4_tb = [2, 4, 3, 1]
+    return reduce(lambda x,y:x + [l[y-1]], p4_tb,[])
+
+def F(R,K):
+    expandR = S_Expend(R)
+    #_print(expandR)
+    xor_exp = XOR(expandR,K)
+    boxes = S_S0(xor_exp[:4]) + S_S1(xor_exp[4:])
+    return P4(boxes)
+def S_funct(L,R,K):
+    return XOR(L,F(R,K)) + R
+def S_swap(L, R):
+    return R + L
+def S_Keys(K):
+    keys = []
+    p10 = P10(K)
+
+    shift = shift_KP10(p10)
+    #_print(shift,5)
+    p8 = P8(shift)
+    #_print(p8)
+    keys.append(p8)     # K1
+    shift = shift_KP10(shift)
+    shift = shift_KP10(shift)
+    #_print(shift,5)
+    p8 = P8(shift)
+    #_print(p8)
+    keys.append(p8)     # K2
+    return keys
+
+K = reduce(lambda x,y: x + [y] if y == "0" or y == "1" else x,list("0111111101"),[])
+keys = S_Keys(K)
+_print(keys[0])
+#_print(keys[1])
+M = reduce(lambda x,y: x + [y] if y == "0" or y == "1" else x,list("10100010"),[])
+#_print(M)
+ip = S_IP(M)
+#print(ip)
+
+fk2 = S_funct(ip[:4],ip[4:],keys[1])
+#_print(fk2)
+fk2_sw = S_swap(fk2[:4], fk2[4:])
+#_print(fk2_sw)
+a = S_Expend(['0','0','1','1'])
+b = XOR(a,keys[0])
+#a = F(fk2_sw[4:],keys[0] )
+#_print(a)
+#_print(b)
+c = S_re_IP(['1','0','1','1', '0','0','1','1'])
+_print(c)
+#fk1 = S_funct(fk2_sw[:4],fk2_sw[4:],keys[0])
+#_print(fk1)
+#pl = S_re_IP(fk1)
+#_print(pl)
